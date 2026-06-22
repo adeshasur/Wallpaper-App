@@ -44,6 +44,9 @@ dependencies:
   # Cupertino Icons
   cupertino_icons: ^1.0.8
 
+  # Typography
+  google_fonts: ^6.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

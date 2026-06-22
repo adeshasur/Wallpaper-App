@@ -2,11 +2,13 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'image_loader.dart';
+import 'bounceable.dart';
 
 // Firebase configuration using existing keys
 const FirebaseOptions firebaseOptions = FirebaseOptions(
@@ -33,8 +35,9 @@ class WallpaperApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseTextTheme = ThemeData(brightness: Brightness.dark).textTheme;
     return MaterialApp(
-      title: 'Wallpaper Inc.',
+      title: 'AuraWall',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -46,6 +49,7 @@ class WallpaperApp extends StatelessWidget {
           surface: Color(0xFF18181B), // Zinc-900
           onSurface: Colors.white,
         ),
+        textTheme: GoogleFonts.outfitTextTheme(baseTextTheme),
         useMaterial3: true,
       ),
       home: const HomeScreen(),
@@ -271,16 +275,39 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'EXPLORE',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.5,
-                              color: Colors.white,
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Aura',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'Wall',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w300,
+                                    letterSpacing: -0.5,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: ' •',
+                                  style: TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF8B5CF6),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          GestureDetector(
+                          Bounceable(
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -326,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          GestureDetector(
+                          Bounceable(
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -351,7 +378,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.5),
+                                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.18), // Violet ambient glow
+                                    blurRadius: 30,
+                                    spreadRadius: 2,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.4),
                                     blurRadius: 15,
                                     offset: const Offset(0, 8),
                                   ),
@@ -475,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                 final isSelected = _selectedCategory == id;
 
-                                return GestureDetector(
+                                return Bounceable(
                                   onTap: () {
                                     setState(() {
                                       _selectedCategory = id;
@@ -612,7 +645,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             return Hero(
                               tag: url,
-                              child: GestureDetector(
+                              child: Bounceable(
                                 onTap: () {
                                   Navigator.push(
                                     context,
@@ -720,7 +753,8 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
   }) {
     final isSelected = _currentBottomNavIndex == index;
-    return GestureDetector(
+    return Bounceable(
+      scaleFactor: 0.92,
       onTap: () {
         setState(() {
           _currentBottomNavIndex = index;
@@ -731,14 +765,17 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         });
       },
-      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutQuint,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
+            width: 1.0,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -749,13 +786,30 @@ class _HomeScreenState extends State<HomeScreen> {
               size: 20,
             ),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey[500],
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey[500],
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+                if (isSelected) ...[
+                  const SizedBox(height: 2),
+                  Container(
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF8B5CF6),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
@@ -1021,7 +1075,7 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
                       const SizedBox(height: 24),
                       
                       // Download Button
-                      GestureDetector(
+                      Bounceable(
                         onTap: () => _downloadImage(context),
                         child: Container(
                           width: double.infinity,
@@ -1031,8 +1085,8 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
                             borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.white.withValues(alpha: 0.25),
-                                blurRadius: 15,
+                                color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                                blurRadius: 20,
                                 offset: const Offset(0, 4),
                               ),
                             ],
@@ -1237,8 +1291,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFF18181B),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3), width: 1.0),
                 boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+                    blurRadius: 25,
+                    spreadRadius: 1,
+                  ),
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 15,
