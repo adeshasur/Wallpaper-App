@@ -149,12 +149,64 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'all';
   int _currentBottomNavIndex = 0;
 
-  // Curated list of high-quality Picsum Photo IDs for zero-config fallback
-  final List<int> _picsumIds = [
-    10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-    31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-    41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+  // Curated list of high-quality verified Unsplash wallpaper URLs for zero-config fallback
+  final List<Map<String, String>> _unsplashTrendingWallpapers = [
+    {
+      'title': 'Golden Beach Sunrise',
+      'url': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Mist Forest Path',
+      'url': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Futuristic Network',
+      'url': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Vintage Ride',
+      'url': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Pastel Horizon',
+      'url': 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Mountain Ridge',
+      'url': 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Gentle Waves',
+      'url': 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Orion Nebula',
+      'url': 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Milky Way Galaxy',
+      'url': 'https://images.unsplash.com/photo-1543722530-d2c3201371e7?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Planet Earth',
+      'url': 'https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Supercar Silhouette',
+      'url': 'https://images.unsplash.com/photo-1525609004556-c46c7d6cf0a3?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Modern Mustang',
+      'url': 'https://images.unsplash.com/photo-1611245801311-66df9892c906?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Minimal Desk Lamp',
+      'url': 'https://images.unsplash.com/photo-1494438639946-1ebd1d2038b5?w=1080&auto=format&fit=crop&q=80',
+    },
+    {
+      'title': 'Pastel Dunes',
+      'url': 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=1080&auto=format&fit=crop&q=80',
+    },
   ];
 
   @override
@@ -163,14 +215,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _generateTrendingWallpapers();
   }
 
-  // Generate fallback wallpapers locally to avoid CORS errors on Flutter Web
+  // Generate fallback wallpapers locally using verified Unsplash URLs
   void _generateTrendingWallpapers() {
     setState(() {
-      _trendingWallpapers = _picsumIds.map<Map<String, dynamic>>((id) {
+      _trendingWallpapers = _unsplashTrendingWallpapers.map<Map<String, dynamic>>((wp) {
         return {
-          'id': id.toString(),
-          'title': 'Aesthetic Visual #$id',
-          'url': 'https://picsum.photos/id/$id/1080/1920',
+          'id': wp['title']!,
+          'title': wp['title']!,
+          'url': wp['url']!,
           'categoryId': 'trending',
         };
       }).toList();
