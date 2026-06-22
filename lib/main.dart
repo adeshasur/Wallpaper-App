@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'image_loader.dart';
 
 // Firebase configuration using existing keys
 const FirebaseOptions firebaseOptions = FirebaseOptions(
@@ -307,8 +308,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(19),
-                            child: Image.network(
-                              featuredWallpaperUrl,
+                            child: SafeImage(
+                              url: featuredWallpaperUrl,
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -497,18 +498,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Container(
                                     color: const Color(0xFF18181B),
                                     child: url.isNotEmpty
-                                        ? Image.network(
-                                            url,
+                                        ? SafeImage(
+                                            url: url,
                                             fit: BoxFit.cover,
-                                            loadingBuilder: (context, child, progress) {
-                                              if (progress == null) return child;
-                                              return const Center(
-                                                child: CircularProgressIndicator(strokeWidth: 2),
-                                              );
-                                            },
-                                            errorBuilder: (context, error, stackTrace) =>
-                                                const Center(
-                                                    child: Icon(Icons.broken_image, color: Colors.grey)),
                                           )
                                         : const Center(child: Icon(Icons.image)),
                                   ),
@@ -642,8 +634,8 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
         children: [
           Hero(
             tag: widget.imageUrl,
-            child: Image.network(
-              widget.imageUrl,
+            child: SafeImage(
+              url: widget.imageUrl,
               fit: BoxFit.cover,
             ),
           ),
