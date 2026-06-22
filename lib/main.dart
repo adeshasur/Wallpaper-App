@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
 import 'image_loader.dart';
 import 'bounceable.dart';
 
@@ -37,7 +38,7 @@ class WallpaperApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseTextTheme = ThemeData(brightness: Brightness.dark).textTheme;
     return MaterialApp(
-      title: 'AuraWall',
+      title: 'Chroma',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -78,6 +79,29 @@ final List<Map<String, String>> staticCategories = [
     'id': 'minimal',
     'name': 'Minimal',
     'thumbnail': 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=500&auto=format&fit=crop&q=60',
+  },
+];
+
+final List<Map<String, String>> curatedCollections = [
+  {
+    'name': 'CYBERPUNK',
+    'image': 'https://images.unsplash.com/photo-1578894381163-e72c17f2d45f?w=600&auto=format&fit=crop&q=80',
+    'tagline': 'Neon & Steel',
+  },
+  {
+    'name': 'MINIMALIST',
+    'image': 'https://images.unsplash.com/photo-1494438639946-1ebd1d2038b5?w=600&auto=format&fit=crop&q=80',
+    'tagline': 'Pure Simplicity',
+  },
+  {
+    'name': 'DEEP SPACE',
+    'image': 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=600&auto=format&fit=crop&q=80',
+    'tagline': 'Cosmic Wonders',
+  },
+  {
+    'name': 'LUSH NATURE',
+    'image': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&auto=format&fit=crop&q=80',
+    'tagline': 'Organic Escapes',
   },
 ];
 
@@ -279,21 +303,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             text: TextSpan(
                               children: [
                                 TextSpan(
-                                  text: 'Aura',
+                                  text: 'Chroma',
                                   style: GoogleFonts.outfit(
                                     fontSize: 26,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: -0.5,
                                     color: Colors.white,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'Wall',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w300,
-                                    letterSpacing: -0.5,
-                                    color: Colors.white70,
                                   ),
                                 ),
                                 const TextSpan(
@@ -551,6 +566,113 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
+                // Horizontal Curated Collections Carousel
+                if (_currentBottomNavIndex == 0)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 24.0),
+                            child: Text(
+                              'CURATED COLLECTIONS',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 130,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                              itemCount: curatedCollections.length,
+                              itemBuilder: (context, index) {
+                                final col = curatedCollections[index];
+                                return Bounceable(
+                                  onTap: () {
+                                    setState(() {
+                                      final catId = col['name']!.toLowerCase().split(' ').last;
+                                      _selectedCategory = catId;
+                                    });
+                                  },
+                                  child: Container(
+                                    width: 220,
+                                    margin: const EdgeInsets.symmetric(horizontal: 6.0),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.08),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(19),
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          SafeImage(
+                                            url: col['image']!,
+                                            fit: BoxFit.cover,
+                                          ),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.centerLeft,
+                                                end: Alignment.centerRight,
+                                                colors: [
+                                                  Colors.black.withValues(alpha: 0.8),
+                                                  Colors.black.withValues(alpha: 0.2),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  col['name']!,
+                                                  style: GoogleFonts.outfit(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: Colors.white,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  col['tagline']!,
+                                                  style: GoogleFonts.outfit(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w400,
+                                                    color: Colors.white70,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                 // Grid section header
                 SliverToBoxAdapter(
                   child: Padding(
@@ -625,62 +747,104 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       );
+                    }                    final leftItems = <Map<String, dynamic>>[];
+                    final rightItems = <Map<String, dynamic>>[];
+                    for (int i = 0; i < wallpapers.length; i++) {
+                      if (i % 2 == 0) {
+                        leftItems.add(wallpapers[i]);
+                      } else {
+                        rightItems.add(wallpapers[i]);
+                      }
+                    }
+
+                    Widget buildMasonryCard(Map<String, dynamic> wp, int actualIndex) {
+                      final url = wp['url'] ?? '';
+                      final title = wp['title'] ?? 'Wallpaper';
+                      final isFav = _favoriteUrls.contains(url);
+                      
+                      // Alternate height patterns dynamically (290, 210, 250)
+                      final height = (actualIndex % 3 == 0) 
+                          ? 290.0 
+                          : (actualIndex % 3 == 1) 
+                              ? 210.0 
+                              : 250.0;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Hero(
+                          tag: url,
+                          child: Bounceable(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                CupertinoPageRoute(
+                                  builder: (_) => WallpaperViewScreen(
+                                    imageUrl: url,
+                                    title: title,
+                                    isFavorite: isFav,
+                                    onFavoriteToggle: () => _toggleFavorite(url),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: height,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  width: 1.0,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(19),
+                                child: Container(
+                                  color: const Color(0xFF18181B),
+                                  child: url.isNotEmpty
+                                      ? SafeImage(
+                                          url: url,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : const Center(child: Icon(Icons.image)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
                     }
 
                     return SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.68,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final wp = wallpapers[index];
-                            final url = wp['url'] ?? '';
-                            final title = wp['title'] ?? 'Wallpaper';
-                            final isFav = _favoriteUrls.contains(url);
-
-                            return Hero(
-                              tag: url,
-                              child: Bounceable(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    CupertinoPageRoute(
-                                      builder: (_) => WallpaperViewScreen(
-                                        imageUrl: url,
-                                        title: title,
-                                        isFavorite: isFav,
-                                        onFavoriteToggle: () => _toggleFavorite(url),
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: const Color(0xFF1C1C1E), width: 1.0),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(15),
-                                    child: Container(
-                                      color: const Color(0xFF18181B),
-                                      child: url.isNotEmpty
-                                          ? SafeImage(
-                                              url: url,
-                                              fit: BoxFit.cover,
-                                            )
-                                          : const Center(child: Icon(Icons.image)),
-                                    ),
-                                  ),
+                      sliver: SliverToBoxAdapter(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: List.generate(
+                                  leftItems.length,
+                                  (index) => buildMasonryCard(leftItems[index], index * 2),
                                 ),
                               ),
-                            );
-                          },
-                          childCount: wallpapers.length,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                children: List.generate(
+                                  rightItems.length,
+                                  (index) => buildMasonryCard(rightItems[index], index * 2 + 1),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -838,6 +1002,109 @@ class WallpaperViewScreen extends StatefulWidget {
 
 class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
   late bool _isFavoriteLocal;
+  bool _previewLockScreen = true;
+
+  void _showCupertinoToast(String message) {
+    OverlayState? overlayState = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 60,
+        left: 24,
+        right: 24,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 250),
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - value) * -20),
+                  child: child,
+                ),
+              );
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF18181B).withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(CupertinoIcons.checkmark_circle_fill, color: Color(0xFF8B5CF6), size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          message,
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlayState.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
+  }
+
+  Widget _buildPreviewToggleButton({
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return Bounceable(
+      scaleFactor: 0.94,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.08),
+            width: 1.0,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.black : Colors.white70,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -915,6 +1182,10 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final mockupWidth = screenSize.width * 0.58;
+    final mockupHeight = mockupWidth * (19.5 / 9.0);
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -927,7 +1198,7 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
             color: Colors.black45,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -957,161 +1228,328 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Hero(
-            tag: widget.imageUrl,
-            child: SafeImage(
-              url: widget.imageUrl,
-              fit: BoxFit.cover,
-            ),
-          ),
-          // Subtle shading gradient
+          // Blurred background wallpaper for dynamic depth-of-field
           Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black26,
-                    Colors.transparent,
-                    Colors.black87,
-                  ],
+            child: ClipRRect(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                child: SafeImage(
+                  url: widget.imageUrl,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
           ),
-          Positioned(
-            bottom: 30,
-            left: 20,
-            right: 20,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      width: 1.0,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Category Tag
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1.0),
+          // Dark ambient shader overlay
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.65),
+            ),
+          ),
+
+          // Main Scrollable Layout
+          Positioned.fill(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(top: kToolbarHeight + 40, bottom: 40),
+              child: Column(
+                children: [
+                  // Phone Preview Chassis Mockup
+                  Center(
+                    child: Container(
+                      width: mockupWidth,
+                      height: mockupHeight,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(38),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          width: 5,
                         ),
-                        child: const Text(
-                          'ORIGINAL ART',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.0,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      // Title
-                      Text(
-                        widget.title,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Specifications Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildSpecItem(Icons.aspect_ratio_rounded, 'Resolution', '1440x3200'),
-                          _buildSpecItem(Icons.sd_storage_rounded, 'Size', '2.4 MB'),
-                          _buildSpecItem(Icons.image_search_rounded, 'Type', 'JPG'),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      
-                      // Color Palette Header
-                      const Text(
-                        'COLOR PALETTE',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      
-                      // Color Palette Row
-                      Row(
-                        children: _getWallpaperPalette(widget.title).map((color) {
-                          return Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white24, width: 1),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(33),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // Wallpaper Hero
+                            Hero(
+                              tag: widget.imageUrl,
+                              child: SafeImage(
+                                url: widget.imageUrl,
+                                fit: BoxFit.cover,
+                              ),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Download Button
-                      Bounceable(
-                        onTap: () => _downloadImage(context),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
-                                blurRadius: 20,
-                                offset: const Offset(0, 4),
+
+                            // Lock Screen Preview Overlays
+                            if (_previewLockScreen) ...[
+                              Positioned(
+                                top: mockupHeight * 0.15,
+                                left: 0,
+                                right: 0,
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'Monday, June 22',
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '09:41',
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white,
+                                        fontSize: 44,
+                                        fontWeight: FontWeight.w300,
+                                        height: 1.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              // Home Screen App Grid Overlay
+                              Positioned.fill(
+                                child: Container(
+                                  padding: const EdgeInsets.only(top: 35, left: 12, right: 12, bottom: 12),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // 3x4 Grid of App Icons (simulated glass icons)
+                                      GridView.builder(
+                                        shrinkWrap: true,
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 4,
+                                          crossAxisSpacing: 12,
+                                          mainAxisSpacing: 12,
+                                          childAspectRatio: 1.0,
+                                        ),
+                                        itemCount: 12,
+                                        itemBuilder: (context, index) => Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                              color: Colors.white.withValues(alpha: 0.08),
+                                              width: 1,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // Simulated Dock Bar
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(
+                                            color: Colors.white.withValues(alpha: 0.08),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: List.generate(4, (index) => Container(
+                                            width: 26,
+                                            height: 26,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.22),
+                                              borderRadius: BorderRadius.circular(7),
+                                            ),
+                                          )),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Toggle Buttons Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildPreviewToggleButton(
+                        label: 'Lock Screen',
+                        isActive: _previewLockScreen,
+                        onTap: () => setState(() => _previewLockScreen = true),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildPreviewToggleButton(
+                        label: 'Home Screen',
+                        isActive: !_previewLockScreen,
+                        onTap: () => setState(() => _previewLockScreen = false),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Glassmorphic Details Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              width: 1.0,
+                            ),
                           ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.download_rounded, color: Colors.black, size: 20),
-                              SizedBox(width: 8),
+                              // Category Tag
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1.0),
+                                ),
+                                child: const Text(
+                                  'ORIGINAL ART',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              
+                              // Title
                               Text(
-                                'DOWNLOAD WALLPAPER',
+                                widget.title,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              // Specifications Row
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _buildSpecItem(Icons.aspect_ratio_rounded, 'Resolution', '1440x3200'),
+                                  _buildSpecItem(Icons.sd_storage_rounded, 'Size', '2.4 MB'),
+                                  _buildSpecItem(Icons.image_search_rounded, 'Type', 'JPG'),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              
+                              // Color Palette Header
+                              const Text(
+                                'COLOR PALETTE (TAP TO COPY HEX)',
                                 style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 13,
+                                  color: Colors.grey,
+                                  fontSize: 9,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              
+                              // Color Palette Row
+                              Row(
+                                children: _getWallpaperPalette(widget.title).map((color) {
+                                  final hexString = '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
+                                  return Bounceable(
+                                    onTap: () {
+                                      Clipboard.setData(ClipboardData(text: hexString));
+                                      _showCupertinoToast('Copied $hexString to clipboard');
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(right: 12),
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: color,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white38, width: 1.5),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: color.withValues(alpha: 0.35),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 24),
+                              
+                              // Download Button
+                              Bounceable(
+                                onTap: () => _downloadImage(context),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(18),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.download_rounded, color: Colors.black, size: 20),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'DOWNLOAD WALLPAPER',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
