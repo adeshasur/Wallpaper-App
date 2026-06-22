@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     image: NetworkImage(thumbnail),
                                     fit: BoxFit.cover,
                                     colorFilter: ColorFilter.mode(
-                                      Colors.black.withOpacity(0.4),
+                                      Colors.black.withAlpha(102),
                                       BlendMode.darken,
                                     ),
                                   )
@@ -345,6 +345,7 @@ class WallpaperViewScreen extends StatelessWidget {
       final file = File('${tempDir.path}/wallpaper_$timestamp.jpg');
       await file.writeAsBytes(bytes);
 
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Saved to app storage successfully! File: wallpaper_$timestamp.jpg'),
@@ -352,6 +353,7 @@ class WallpaperViewScreen extends StatelessWidget {
         ),
       );
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to download: $e'),
