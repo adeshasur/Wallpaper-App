@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -245,365 +246,496 @@ class _HomeScreenState extends State<HomeScreen> {
     final featuredTitle = _trendingWallpapers.isNotEmpty ? _trendingWallpapers[0]['title'] : '';
 
     return Scaffold(
-      // Translucent custom iOS-style Bottom Navigation Bar
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(color: Color(0xFF1C1C1E), width: 1.0),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentBottomNavIndex,
-          onTap: (index) {
-            setState(() {
-              _currentBottomNavIndex = index;
-              if (index == 0) {
-                _selectedCategory = 'all';
-              } else if (index == 1) {
-                _selectedCategory = 'favorites';
-              }
-            });
-          },
-          backgroundColor: const Color(0xFF09090B),
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.grey[600],
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_outlined, size: 22),
-              activeIcon: Icon(Icons.grid_view_rounded, size: 22),
-              label: 'Explore',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_outline_rounded, size: 22),
-              activeIcon: Icon(Icons.favorite_rounded, size: 22),
-              label: 'Favorites',
-            ),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Minimalist Top Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'EXPLORE',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF18181B), // Zinc-900
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF27272A), width: 1.0),
-                      ),
-                      child: const Icon(Icons.person_outline_rounded, color: Colors.white70, size: 20),
-                    )
-                  ],
-                ),
-              ),
-            ),
-
-            // "Wallpaper of the Day" / Featured Banner (Minimal style, no text overlay clutter)
-            if (_currentBottomNavIndex == 0 && featuredWallpaperUrl.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'WALLPAPER OF THE DAY',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                          letterSpacing: 1.2,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // Minimalist Top Header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'EXPLORE',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => WallpaperViewScreen(
-                                imageUrl: featuredWallpaperUrl,
-                                title: featuredTitle,
-                                isFavorite: _favoriteUrls.contains(featuredWallpaperUrl),
-                                onFavoriteToggle: () => _toggleFavorite(featuredWallpaperUrl),
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          height: 220,
-                          width: double.infinity,
+                        Container(
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
+                            color: const Color(0xFF18181B), // Zinc-900
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: const Color(0xFF27272A), width: 1.0),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(19),
-                            child: SafeImage(
-                              url: featuredWallpaperUrl,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                          child: const Icon(Icons.person_outline_rounded, color: Colors.white70, size: 20),
+                        )
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-            // Minimal Category horizontal chips list
-            if (_currentBottomNavIndex == 0)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
-                  child: SizedBox(
-                    height: 38,
-                    child: StreamBuilder<QuerySnapshot>(
-                      stream: _firestore.collection('categories').snapshots(),
-                      builder: (context, snapshot) {
-                        List<Map<String, String>> categories = [];
-                        
-                        // Add static ones first
-                        for (var cat in staticCategories) {
-                          categories.add({
-                            'id': cat['id']!,
-                            'name': cat['name']!,
-                          });
-                        }
-                        
-                        // Add firestore ones (avoiding duplicates by normalized ID)
-                        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                          for (var doc in snapshot.data!.docs) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            final name = data['name']?.toString() ?? '';
-                            final id = name.toLowerCase().trim();
-                            if (name.isNotEmpty && !categories.any((c) => c['id'] == id)) {
-                              categories.add({
-                                'id': id,
-                                'name': name,
-                              });
-                            }
-                          }
-                        }
-
-                        return ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                          itemCount: categories.length + 1, // 'All' + dynamic categories
-                          itemBuilder: (context, index) {
-                            String id = 'all';
-                            String name = 'All';
-
-                            if (index == 0) {
-                              id = 'all';
-                              name = 'All';
-                            } else {
-                              final cat = categories[index - 1];
-                              id = cat['id']!;
-                              name = cat['name']!;
-                            }
-
-                            final isSelected = _selectedCategory == id;
-
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedCategory = id;
-                                });
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                                padding: const EdgeInsets.symmetric(horizontal: 18.0),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: isSelected ? Colors.white : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: isSelected ? Colors.white : const Color(0xFF27272A),
-                                    width: 1.0,
+                // "Wallpaper of the Day" / Featured Banner (Premium glass showcase style)
+                if (_currentBottomNavIndex == 0 && featuredWallpaperUrl.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'WALLPAPER OF THE DAY',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => WallpaperViewScreen(
+                                    imageUrl: featuredWallpaperUrl,
+                                    title: featuredTitle,
+                                    isFavorite: _favoriteUrls.contains(featuredWallpaperUrl),
+                                    onFavoriteToggle: () => _toggleFavorite(featuredWallpaperUrl),
                                   ),
                                 ),
-                                child: Text(
-                                  name,
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.black : Colors.grey[400],
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                              );
+                            },
+                            child: Container(
+                              height: 240,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  width: 1.0,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.5),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(23),
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: SafeImage(
+                                        url: featuredWallpaperUrl,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    Positioned.fill(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withValues(alpha: 0.4),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 16,
+                                      right: 16,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: BackdropFilter(
+                                          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            color: Colors.black.withValues(alpha: 0.4),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.star_rounded, color: Colors.amber, size: 12),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  'FEATURED',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.w900,
+                                                    letterSpacing: 1.0,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Minimal Category horizontal chips list
+                if (_currentBottomNavIndex == 0)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
+                      child: SizedBox(
+                        height: 38,
+                        child: StreamBuilder<QuerySnapshot>(
+                          stream: _firestore.collection('categories').snapshots(),
+                          builder: (context, snapshot) {
+                            List<Map<String, String>> categories = [];
+                            
+                            // Add static ones first
+                            for (var cat in staticCategories) {
+                              categories.add({
+                                'id': cat['id']!,
+                                'name': cat['name']!,
+                              });
+                            }
+                            
+                            // Add firestore ones (avoiding duplicates by normalized ID)
+                            if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                              for (var doc in snapshot.data!.docs) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final name = data['name']?.toString() ?? '';
+                                final id = name.toLowerCase().trim();
+                                if (name.isNotEmpty && !categories.any((c) => c['id'] == id)) {
+                                  categories.add({
+                                    'id': id,
+                                    'name': name,
+                                  });
+                                }
+                              }
+                            }
+
+                            return ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                              itemCount: categories.length + 1, // 'All' + dynamic categories
+                              itemBuilder: (context, index) {
+                                String id = 'all';
+                                String name = 'All';
+
+                                if (index == 0) {
+                                  id = 'all';
+                                  name = 'All';
+                                } else {
+                                  final cat = categories[index - 1];
+                                  id = cat['id']!;
+                                  name = cat['name']!;
+                                }
+
+                                final isSelected = _selectedCategory == id;
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedCategory = id;
+                                    });
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                                    padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? Colors.white : const Color(0xFF18181B),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: isSelected ? Colors.white : const Color(0xFF27272A),
+                                        width: 1.0,
+                                      ),
+                                      boxShadow: isSelected ? [
+                                        BoxShadow(
+                                          color: Colors.white.withValues(alpha: 0.12),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ] : null,
+                                    ),
+                                    child: Text(
+                                      name,
+                                      style: TextStyle(
+                                        color: isSelected ? Colors.black : Colors.grey[400],
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Grid section header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 24.0, top: 24.0, bottom: 12.0),
+                    child: Text(
+                      _currentBottomNavIndex == 1
+                          ? 'FAVORITE WALLPAPERS'
+                          : 'ALL COLLECTIONS',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Clean Image Grid (Pure visual cards, no clutter, no texts)
+                StreamBuilder<QuerySnapshot>(
+                  stream: _firestore.collection('wallpapers').snapshots(),
+                  builder: (context, snapshot) {
+                    List<Map<String, dynamic>> wallpapers = [];
+
+                    // Gather Firestore database wallpapers
+                    if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                      for (var doc in snapshot.data!.docs) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        wallpapers.add({
+                          'id': doc.id,
+                          'url': data['url'] ?? '',
+                          'title': data['title'] ?? 'Wallpaper',
+                          'categoryId': data['categoryId'] ?? 'all',
+                        });
+                      }
+                    }
+
+                    // Filter logic
+                    if (_selectedCategory == 'favorites' || _currentBottomNavIndex == 1) {
+                      wallpapers = _trendingWallpapers
+                          .where((wp) => _favoriteUrls.contains(wp['url']))
+                          .toList();
+                    } else if (_selectedCategory != 'all') {
+                      final dbFiltered = wallpapers
+                          .where((wp) => wp['categoryId'].toString().toLowerCase() == _selectedCategory.toLowerCase())
+                          .toList();
+
+                      if (dbFiltered.isEmpty) {
+                        final fallback = fallbackWallpapersByCategory[_selectedCategory] ?? [];
+                        wallpapers = fallback.map((wp) => {
+                          'id': wp['title']!,
+                          'url': wp['url']!,
+                          'title': wp['title']!,
+                          'categoryId': _selectedCategory,
+                        }).toList();
+                      } else {
+                        wallpapers = dbFiltered;
+                      }
+                    } else {
+                      if (wallpapers.isEmpty) {
+                        wallpapers = _trendingWallpapers;
+                      }
+                    }
+
+                    if (wallpapers.isEmpty) {
+                      return const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Text(
+                            'No wallpapers found.',
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                          ),
+                        ),
+                      );
+                    }
+
+                    return SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      sliver: SliverGrid(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.68,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final wp = wallpapers[index];
+                            final url = wp['url'] ?? '';
+                            final title = wp['title'] ?? 'Wallpaper';
+                            final isFav = _favoriteUrls.contains(url);
+
+                            return Hero(
+                              tag: url,
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => WallpaperViewScreen(
+                                        imageUrl: url,
+                                        title: title,
+                                        isFavorite: isFav,
+                                        onFavoriteToggle: () => _toggleFavorite(url),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: const Color(0xFF1C1C1E), width: 1.0),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(15),
+                                    child: Container(
+                                      color: const Color(0xFF18181B),
+                                      child: url.isNotEmpty
+                                          ? SafeImage(
+                                              url: url,
+                                              fit: BoxFit.cover,
+                                            )
+                                          : const Center(child: Icon(Icons.image)),
+                                    ),
                                   ),
                                 ),
                               ),
                             );
                           },
-                        );
-                      }
-                    ),
-                  ),
+                          childCount: wallpapers.length,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              ),
+                
+                // Bottom padding to ensure content can scroll past the floating navigation bar
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 100),
+                ),
+              ],
+            ),
+          ),
 
-            // Grid section header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 24.0, top: 24.0, bottom: 12.0),
-                child: Text(
-                  _currentBottomNavIndex == 1
-                      ? 'FAVORITE WALLPAPERS'
-                      : 'ALL COLLECTIONS',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                    letterSpacing: 1.2,
+          // Floating Glassmorphic Bottom Navigation Bar
+          Positioned(
+            bottom: 24,
+            left: 24,
+            right: 24,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF09090B).withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      width: 1.0,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildFloatingNavItem(
+                        index: 0,
+                        iconOutlined: Icons.grid_view_outlined,
+                        iconFilled: Icons.grid_view_rounded,
+                        label: 'Explore',
+                      ),
+                      _buildFloatingNavItem(
+                        index: 1,
+                        iconOutlined: Icons.favorite_outline_rounded,
+                        iconFilled: Icons.favorite_rounded,
+                        label: 'Favorites',
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-
-            // Clean Image Grid (Pure visual cards, no clutter, no texts)
-            StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('wallpapers').snapshots(),
-              builder: (context, snapshot) {
-                List<Map<String, dynamic>> wallpapers = [];
-
-                // Gather Firestore database wallpapers
-                if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                  for (var doc in snapshot.data!.docs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    wallpapers.add({
-                      'id': doc.id,
-                      'url': data['url'] ?? '',
-                      'title': data['title'] ?? 'Wallpaper',
-                      'categoryId': data['categoryId'] ?? 'all',
-                    });
-                  }
-                }
-
-                // Filter logic
-                if (_selectedCategory == 'favorites' || _currentBottomNavIndex == 1) {
-                  wallpapers = _trendingWallpapers
-                      .where((wp) => _favoriteUrls.contains(wp['url']))
-                      .toList();
-                } else if (_selectedCategory != 'all') {
-                  final dbFiltered = wallpapers
-                      .where((wp) => wp['categoryId'].toString().toLowerCase() == _selectedCategory.toLowerCase())
-                      .toList();
-
-                  if (dbFiltered.isEmpty) {
-                    final fallback = fallbackWallpapersByCategory[_selectedCategory] ?? [];
-                    wallpapers = fallback.map((wp) => {
-                      'id': wp['title']!,
-                      'url': wp['url']!,
-                      'title': wp['title']!,
-                      'categoryId': _selectedCategory,
-                    }).toList();
-                  } else {
-                    wallpapers = dbFiltered;
-                  }
-                } else {
-                  if (wallpapers.isEmpty) {
-                    wallpapers = _trendingWallpapers;
-                  }
-                }
-
-                if (wallpapers.isEmpty) {
-                  return const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Text(
-                        'No wallpapers found.',
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                    ),
-                  );
-                }
-
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.68,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final wp = wallpapers[index];
-                        final url = wp['url'] ?? '';
-                        final title = wp['title'] ?? 'Wallpaper';
-                        final isFav = _favoriteUrls.contains(url);
-
-                        return Hero(
-                          tag: url,
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                  MaterialPageRoute(
-                                    builder: (_) => WallpaperViewScreen(
-                                      imageUrl: url,
-                                      title: title,
-                                      isFavorite: isFav,
-                                      onFavoriteToggle: () => _toggleFavorite(url),
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0xFF1C1C1E), width: 1.0),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(15),
-                                  child: Container(
-                                    color: const Color(0xFF18181B),
-                                    child: url.isNotEmpty
-                                        ? SafeImage(
-                                            url: url,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : const Center(child: Icon(Icons.image)),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                        childCount: wallpapers.length,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 30),
-              )
-            ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingNavItem({
+    required int index,
+    required IconData iconOutlined,
+    required IconData iconFilled,
+    required String label,
+  }) {
+    final isSelected = _currentBottomNavIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentBottomNavIndex = index;
+          if (index == 0) {
+            _selectedCategory = 'all';
+          } else if (index == 1) {
+            _selectedCategory = 'favorites';
+          }
+        });
+      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
         ),
-      );
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? iconFilled : iconOutlined,
+              color: isSelected ? Colors.white : Colors.grey[500],
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey[500],
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -632,6 +764,16 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
   void initState() {
     super.initState();
     _isFavoriteLocal = widget.isFavorite;
+  }
+
+  List<Color> _getWallpaperPalette(String title) {
+    final int hash = title.hashCode;
+    final Color c1 = HSLColor.fromAHSL(1.0, (hash % 360).toDouble(), 0.6, 0.4).toColor();
+    final Color c2 = HSLColor.fromAHSL(1.0, ((hash + 40) % 360).toDouble(), 0.5, 0.5).toColor();
+    final Color c3 = HSLColor.fromAHSL(1.0, ((hash + 80) % 360).toDouble(), 0.6, 0.6).toColor();
+    final Color c4 = HSLColor.fromAHSL(1.0, ((hash + 180) % 360).toDouble(), 0.4, 0.7).toColor();
+    final Color c5 = HSLColor.fromAHSL(1.0, ((hash + 220) % 360).toDouble(), 0.5, 0.3).toColor();
+    return [c1, c2, c3, c4, c5];
   }
 
   Future<void> _downloadImage(BuildContext context) async {
@@ -668,6 +810,28 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
         ),
       );
     }
+  }
+
+  Widget _buildSpecItem(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white70, size: 16),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(color: Colors.grey, fontSize: 8, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              value,
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   @override
@@ -738,58 +902,138 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
             ),
           ),
           Positioned(
-            bottom: 40,
-            left: 24,
-            right: 24,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.title,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Original High Resolution Wallpaper',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Premium Minimal Button (Pure White / Black Text)
-                GestureDetector(
-                  onTap: () => _downloadImage(context),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+            bottom: 30,
+            left: 20,
+            right: 20,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      width: 1.0,
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.download, color: Colors.black, size: 20),
-                        SizedBox(width: 10),
-                        Text(
-                          'DOWNLOAD WALLPAPER',
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Category Tag
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1.0),
+                        ),
+                        child: const Text(
+                          'ORIGINAL ART',
                           style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 13,
+                            color: Colors.white70,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.0,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // Title
+                      Text(
+                        widget.title,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Specifications Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildSpecItem(Icons.aspect_ratio_rounded, 'Resolution', '1440x3200'),
+                          _buildSpecItem(Icons.sd_storage_rounded, 'Size', '2.4 MB'),
+                          _buildSpecItem(Icons.image_search_rounded, 'Type', 'JPG'),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Color Palette Header
+                      const Text(
+                        'COLOR PALETTE',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      
+                      // Color Palette Row
+                      Row(
+                        children: _getWallpaperPalette(widget.title).map((color) {
+                          return Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white24, width: 1),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Download Button
+                      GestureDetector(
+                        onTap: () => _downloadImage(context),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                blurRadius: 15,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.download_rounded, color: Colors.black, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'DOWNLOAD WALLPAPER',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],

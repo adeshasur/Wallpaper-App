@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'shimmer_placeholder.dart';
 
 Widget buildPlatformImage(String url, BoxFit fit) {
   return Image.network(
@@ -8,7 +9,7 @@ Widget buildPlatformImage(String url, BoxFit fit) {
         const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
     loadingBuilder: (context, child, loadingProgress) {
       if (loadingProgress == null) return child;
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+      return const ShimmerPlaceholder();
     },
   );
 }
