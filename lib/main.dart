@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -36,12 +35,13 @@ class WallpaperApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F0F1E),
-        primaryColor: const Color(0xFF6C63FF),
+        scaffoldBackgroundColor: const Color(0xFF09090B), // Zinc-950 (iOS style dark)
+        primaryColor: Colors.white,
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF6C63FF),
-          secondary: Color(0xFFFF6584),
-          surface: Color(0xFF1E1E2F),
+          primary: Colors.white,
+          secondary: Color(0xFFE4E4E7), // Zinc-200
+          surface: Color(0xFF18181B), // Zinc-900
+          onSurface: Colors.white,
         ),
         useMaterial3: true,
       ),
@@ -51,7 +51,7 @@ class WallpaperApp extends StatelessWidget {
 }
 
 // Fallback Curated Categories using Unsplash links
-final List<Map<String, String>> fallbackCategories = [
+final List<Map<String, String>> staticCategories = [
   {
     'id': 'nature',
     'name': 'Nature',
@@ -70,7 +70,7 @@ final List<Map<String, String>> fallbackCategories = [
   {
     'id': 'minimal',
     'name': 'Minimal',
-    'thumbnail': 'https://images.unsplash.com/photo-1494438639946-1ebd1d2038b5?w=500&auto=format&fit=crop&q=60',
+    'thumbnail': 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=500&auto=format&fit=crop&q=60',
   },
 ];
 
@@ -143,392 +143,422 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  List<Map<String, dynamic>> _picsumWallpapers = [];
-  bool _isLoadingPicsum = false;
+  List<Map<String, dynamic>> _trendingWallpapers = [];
+  final List<String> _favoriteUrls = [];
+  String _selectedCategory = 'all';
+  int _currentBottomNavIndex = 0;
+
+  // Curated list of high-quality Picsum Photo IDs for zero-config fallback
+  final List<int> _picsumIds = [
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+    31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+  ];
 
   @override
   void initState() {
     super.initState();
-    _fetchPicsumWallpapers();
+    _generateTrendingWallpapers();
   }
 
-  // Fetch free trending images from Lorem Picsum API (No Key Required)
-  Future<void> _fetchPicsumWallpapers() async {
+  // Generate fallback wallpapers locally to avoid CORS errors on Flutter Web
+  void _generateTrendingWallpapers() {
     setState(() {
-      _isLoadingPicsum = true;
+      _trendingWallpapers = _picsumIds.map<Map<String, dynamic>>((id) {
+        return {
+          'id': id.toString(),
+          'title': 'Aesthetic Visual #$id',
+          'url': 'https://picsum.photos/id/$id/1080/1920',
+          'categoryId': 'trending',
+        };
+      }).toList();
     });
-    try {
-      final response = await http.get(Uri.parse('https://picsum.photos/v2/list?limit=30'));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          _picsumWallpapers = data.map<Map<String, dynamic>>((item) {
-            final id = item['id'].toString();
-            // Construct a higher-res mobile-sized link (1080x1920)
-            return {
-              'id': id,
-              'title': 'Wallpaper by ${item['author']}',
-              'url': 'https://picsum.photos/id/$id/1080/1920',
-              'categoryId': 'picsum',
-            };
-          }).toList();
-        });
+  }
+
+  void _toggleFavorite(String url) {
+    setState(() {
+      if (_favoriteUrls.contains(url)) {
+        _favoriteUrls.remove(url);
+      } else {
+        _favoriteUrls.add(url);
       }
-    } catch (e) {
-      debugPrint('Error fetching picsum images: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingPicsum = false;
-        });
-      }
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
+    final featuredWallpaperUrl = _trendingWallpapers.isNotEmpty ? _trendingWallpapers[0]['url'] : '';
+    final featuredTitle = _trendingWallpapers.isNotEmpty ? _trendingWallpapers[0]['title'] : '';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Wallpaper Inc.',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+      // Translucent custom iOS-style Bottom Navigation Bar
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Color(0xFF1C1C1E), width: 1.0),
+          ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              _fetchPicsumWallpapers();
-            },
-            tooltip: 'Refresh API Wallpapers',
-          )
-        ],
+        child: BottomNavigationBar(
+          currentIndex: _currentBottomNavIndex,
+          onTap: (index) {
+            setState(() {
+              _currentBottomNavIndex = index;
+              if (index == 0) {
+                _selectedCategory = 'all';
+              } else if (index == 1) {
+                _selectedCategory = 'favorites';
+              }
+            });
+          },
+          backgroundColor: const Color(0xFF09090B),
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Colors.grey[600],
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.grid_view_outlined, size: 22),
+              activeIcon: Icon(Icons.grid_view_rounded, size: 22),
+              label: 'Explore',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.favorite_outline_rounded, size: 22),
+              activeIcon: Icon(Icons.favorite_rounded, size: 22),
+              label: 'Favorites',
+            ),
+          ],
+        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await _fetchPicsumWallpapers();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Categories Section
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Text(
-                  'Categories',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-              StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('categories').snapshots(),
-                builder: (context, snapshot) {
-                  List<Map<String, dynamic>> categories = [];
-
-                  if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                    // Load categories from database if they exist
-                    for (var doc in snapshot.data!.docs) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      categories.add({
-                        'id': doc.id,
-                        'name': data['name'] ?? 'No Name',
-                        'thumbnail': data['thumbnail'] ?? '',
-                      });
-                    }
-                  } else {
-                    // Fallback to offline curated categories
-                    categories = fallbackCategories;
-                  }
-
-                  return SizedBox(
-                    height: 120,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      itemCount: categories.length,
-                      itemBuilder: (context, index) {
-                        final cat = categories[index];
-                        final name = cat['name'] ?? 'No Name';
-                        final thumbnail = cat['thumbnail'] ?? '';
-
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CategoryDetailScreen(
-                                  categoryId: cat['id']!,
-                                  categoryName: name,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            width: 140,
-                            margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              image: thumbnail.isNotEmpty
-                                  ? DecorationImage(
-                                      image: NetworkImage(thumbnail),
-                                      fit: BoxFit.cover,
-                                      colorFilter: ColorFilter.mode(
-                                        Colors.black.withAlpha(102),
-                                        BlendMode.darken,
-                                      ),
-                                    )
-                                  : null,
-                              color: Colors.grey[800],
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              name,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                shadows: [
-                                  Shadow(
-                                    offset: Offset(0, 1),
-                                    blurRadius: 3,
-                                    color: Colors.black87,
-                                  ),
-                                ],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-
-              // Wallpapers section
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                child: Text(
-                  'Explore Wallpapers',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-
-              StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('wallpapers').snapshots(),
-                builder: (context, snapshot) {
-                  List<Map<String, dynamic>> wallpapers = [];
-
-                  // 1. Gather Firestore database wallpapers if they exist
-                  if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                    for (var doc in snapshot.data!.docs) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      wallpapers.add({
-                        'id': doc.id,
-                        'url': data['url'] ?? '',
-                        'title': data['title'] ?? 'Wallpaper',
-                      });
-                    }
-                  }
-
-                  // 2. Add API/curated wallpapers if database has few or no entries
-                  if (wallpapers.isEmpty) {
-                    if (_isLoadingPicsum) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-                    wallpapers = _picsumWallpapers;
-                  }
-
-                  if (wallpapers.isEmpty) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40.0),
-                        child: Text('No wallpapers found. Pull to refresh!'),
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // Minimalist Top Header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'EXPLORE',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
+                        color: Colors.white,
                       ),
-                    );
-                  }
-
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.65,
                     ),
-                    itemCount: wallpapers.length,
-                    itemBuilder: (context, index) {
-                      final wp = wallpapers[index];
-                      final url = wp['url'] ?? '';
-                      final title = wp['title'] ?? 'Wallpaper';
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF18181B), // Zinc-900
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                      ),
+                      child: const Icon(Icons.person_outline_rounded, color: Colors.white70, size: 20),
+                    )
+                  ],
+                ),
+              ),
+            ),
 
-                      return GestureDetector(
+            // "Wallpaper of the Day" / Featured Banner (Minimal style, no text overlay clutter)
+            if (_currentBottomNavIndex == 0 && featuredWallpaperUrl.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'WALLPAPER OF THE DAY',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => WallpaperViewScreen(
-                                imageUrl: url,
-                                title: title,
+                                imageUrl: featuredWallpaperUrl,
+                                title: featuredTitle,
+                                isFavorite: _favoriteUrls.contains(featuredWallpaperUrl),
+                                onFavoriteToggle: () => _toggleFavorite(featuredWallpaperUrl),
                               ),
                             ),
                           );
                         },
-                        child: Hero(
-                          tag: url,
+                        child: Container(
+                          height: 220,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                          ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              color: Colors.grey[900],
-                              child: url.isNotEmpty
-                                  ? Image.network(
-                                      url,
-                                      fit: BoxFit.cover,
-                                      loadingBuilder: (context, child, progress) {
-                                        if (progress == null) return child;
-                                        return Center(
-                                          child: CircularProgressIndicator(
-                                            valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                                          ),
-                                        );
-                                      },
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          const Center(
-                                              child: Icon(Icons.broken_image, color: Colors.grey)),
-                                    )
-                                  : const Center(child: Icon(Icons.image)),
+                            borderRadius: BorderRadius.circular(19),
+                            child: Image.network(
+                              featuredWallpaperUrl,
+                              fit: BoxFit.cover,
                             ),
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
-class CategoryDetailScreen extends StatelessWidget {
-  final String categoryId;
-  final String categoryName;
+            // Minimal Category horizontal chips list
+            if (_currentBottomNavIndex == 0)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
+                  child: SizedBox(
+                    height: 38,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      itemCount: staticCategories.length + 1, // 'All' + static categories
+                      itemBuilder: (context, index) {
+                        String id = 'all';
+                        String name = 'All';
 
-  const CategoryDetailScreen({
-    super.key,
-    required this.categoryId,
-    required this.categoryName,
-  });
+                        if (index == 0) {
+                          id = 'all';
+                          name = 'All';
+                        } else {
+                          final cat = staticCategories[index - 1];
+                          id = cat['id']!;
+                          name = cat['name']!;
+                        }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(categoryName),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('wallpapers')
-            .where('categoryId', isEqualTo: categoryId)
-            .snapshots(),
-        builder: (context, snapshot) {
-          List<Map<String, dynamic>> wallpapers = [];
+                        final isSelected = _selectedCategory == id;
 
-          if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-            for (var doc in snapshot.data!.docs) {
-              final data = doc.data() as Map<String, dynamic>;
-              wallpapers.add({
-                'id': doc.id,
-                'url': data['url'] ?? '',
-                'title': data['title'] ?? 'Wallpaper',
-              });
-            }
-          } else {
-            // Fallback to local curated wallpapers for this category
-            wallpapers = fallbackWallpapersByCategory[categoryId.toLowerCase()] ?? [];
-          }
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedCategory = id;
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                            padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.white : Colors.transparent,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected ? Colors.white : const Color(0xFF27272A),
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Text(
+                              name,
+                              style: TextStyle(
+                                color: isSelected ? Colors.black : Colors.grey[400],
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
 
-          if (wallpapers.isEmpty) {
-            return const Center(child: Text('No wallpapers in this category.'));
-          }
-
-          return GridView.builder(
-            padding: const EdgeInsets.all(16.0),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.65,
+            // Grid section header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 24.0, top: 24.0, bottom: 12.0),
+                child: Text(
+                  _currentBottomNavIndex == 1
+                      ? 'FAVORITE WALLPAPERS'
+                      : 'ALL COLLECTIONS',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
             ),
-            itemCount: wallpapers.length,
-            itemBuilder: (context, index) {
-              final wp = wallpapers[index];
-              final url = wp['url'] ?? '';
-              final title = wp['title'] ?? 'Wallpaper';
 
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => WallpaperViewScreen(
-                        imageUrl: url,
-                        title: title,
+            // Clean Image Grid (Pure visual cards, no clutter, no texts)
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('wallpapers').snapshots(),
+              builder: (context, snapshot) {
+                List<Map<String, dynamic>> wallpapers = [];
+
+                // Gather Firestore database wallpapers
+                if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                  for (var doc in snapshot.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    wallpapers.add({
+                      'id': doc.id,
+                      'url': data['url'] ?? '',
+                      'title': data['title'] ?? 'Wallpaper',
+                      'categoryId': data['categoryId'] ?? 'all',
+                    });
+                  }
+                }
+
+                // Filter logic
+                if (_selectedCategory == 'favorites' || _currentBottomNavIndex == 1) {
+                  wallpapers = _trendingWallpapers
+                      .where((wp) => _favoriteUrls.contains(wp['url']))
+                      .toList();
+                } else if (_selectedCategory != 'all') {
+                  final dbFiltered = wallpapers
+                      .where((wp) => wp['categoryId'].toString().toLowerCase() == _selectedCategory.toLowerCase())
+                      .toList();
+
+                  if (dbFiltered.isEmpty) {
+                    final fallback = fallbackWallpapersByCategory[_selectedCategory] ?? [];
+                    wallpapers = fallback.map((wp) => {
+                      'id': wp['title']!,
+                      'url': wp['url']!,
+                      'title': wp['title']!,
+                      'categoryId': _selectedCategory,
+                    }).toList();
+                  } else {
+                    wallpapers = dbFiltered;
+                  }
+                } else {
+                  if (wallpapers.isEmpty) {
+                    wallpapers = _trendingWallpapers;
+                  }
+                }
+
+                if (wallpapers.isEmpty) {
+                  return const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Text(
+                        'No wallpapers found.',
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                    ),
+                  );
+                }
+
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.68,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final wp = wallpapers[index];
+                        final url = wp['url'] ?? '';
+                        final title = wp['title'] ?? 'Wallpaper';
+                        final isFav = _favoriteUrls.contains(url);
+
+                        return Hero(
+                          tag: url,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                  MaterialPageRoute(
+                                    builder: (_) => WallpaperViewScreen(
+                                      imageUrl: url,
+                                      title: title,
+                                      isFavorite: isFav,
+                                      onFavoriteToggle: () => _toggleFavorite(url),
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFF1C1C1E), width: 1.0),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(15),
+                                  child: Container(
+                                    color: const Color(0xFF18181B),
+                                    child: url.isNotEmpty
+                                        ? Image.network(
+                                            url,
+                                            fit: BoxFit.cover,
+                                            loadingBuilder: (context, child, progress) {
+                                              if (progress == null) return child;
+                                              return const Center(
+                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                              );
+                                            },
+                                            errorBuilder: (context, error, stackTrace) =>
+                                                const Center(
+                                                    child: Icon(Icons.broken_image, color: Colors.grey)),
+                                          )
+                                        : const Center(child: Icon(Icons.image)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        childCount: wallpapers.length,
                       ),
                     ),
                   );
                 },
-                child: Hero(
-                  tag: url,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      color: Colors.grey[900],
-                      child: url.isNotEmpty
-                          ? Image.network(
-                              url,
-                              fit: BoxFit.cover,
-                            )
-                          : const Center(child: Icon(Icons.image)),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
+              ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 30),
+              )
+            ],
+          ),
+        ),
+      );
   }
 }
 
-class WallpaperViewScreen extends StatelessWidget {
+class WallpaperViewScreen extends StatefulWidget {
   final String imageUrl;
   final String title;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
 
   const WallpaperViewScreen({
     super.key,
     required this.imageUrl,
     required this.title,
+    required this.isFavorite,
+    required this.onFavoriteToggle,
   });
+
+  @override
+  State<WallpaperViewScreen> createState() => _WallpaperViewScreenState();
+}
+
+class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
+  late bool _isFavoriteLocal;
+
+  @override
+  void initState() {
+    super.initState();
+    _isFavoriteLocal = widget.isFavorite;
+  }
 
   Future<void> _downloadImage(BuildContext context) async {
     try {
@@ -539,10 +569,10 @@ class WallpaperViewScreen extends StatelessWidget {
         ),
       );
 
-      final response = await http.get(Uri.parse(imageUrl));
+      final response = await http.get(Uri.parse(widget.imageUrl));
       final bytes = response.bodyBytes;
 
-      // Save to temporary directory as a fallback
+      // Save to temporary directory
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final file = File('${tempDir.path}/wallpaper_$timestamp.jpg');
@@ -552,7 +582,7 @@ class WallpaperViewScreen extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Saved to app storage successfully! File: wallpaper_$timestamp.jpg'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.white,
         ),
       );
     } catch (e) {
@@ -573,51 +603,116 @@ class WallpaperViewScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: Container(
+          margin: const EdgeInsets.only(left: 12),
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black45,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black45,
+            ),
+            child: IconButton(
+              icon: Icon(
+                _isFavoriteLocal ? Icons.favorite : Icons.favorite_border,
+                color: _isFavoriteLocal ? Colors.redAccent : Colors.white,
+                size: 20,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isFavoriteLocal = !_isFavoriteLocal;
+                });
+                widget.onFavoriteToggle();
+              },
+            ),
+          )
+        ],
       ),
       body: Stack(
         fit: StackFit.expand,
         children: [
           Hero(
-            tag: imageUrl,
+            tag: widget.imageUrl,
             child: Image.network(
-              imageUrl,
+              widget.imageUrl,
               fit: BoxFit.cover,
+            ),
+          ),
+          // Subtle shading gradient
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black26,
+                    Colors.transparent,
+                    Colors.black87,
+                  ],
+                ),
+              ),
             ),
           ),
           Positioned(
             bottom: 40,
-            left: 20,
-            right: 20,
+            left: 24,
+            right: 24,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  widget.title,
                   style: const TextStyle(
                     fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black87,
-                        offset: Offset(0, 2),
-                        blurRadius: 6,
-                      )
-                    ],
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () => _downloadImage(context),
-                  icon: const Icon(Icons.download),
-                  label: const Text('Download Wallpaper'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 32),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                const SizedBox(height: 4),
+                const Text(
+                  'Original High Resolution Wallpaper',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Premium Minimal Button (Pure White / Black Text)
+                GestureDetector(
+                  onTap: () => _downloadImage(context),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.download, color: Colors.black, size: 20),
+                        SizedBox(width: 10),
+                        Text(
+                          'DOWNLOAD WALLPAPER',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
