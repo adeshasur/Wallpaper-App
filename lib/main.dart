@@ -379,54 +379,84 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
                   child: SizedBox(
                     height: 38,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      itemCount: staticCategories.length + 1, // 'All' + static categories
-                      itemBuilder: (context, index) {
-                        String id = 'all';
-                        String name = 'All';
-
-                        if (index == 0) {
-                          id = 'all';
-                          name = 'All';
-                        } else {
-                          final cat = staticCategories[index - 1];
-                          id = cat['id']!;
-                          name = cat['name']!;
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: _firestore.collection('categories').snapshots(),
+                      builder: (context, snapshot) {
+                        List<Map<String, String>> categories = [];
+                        
+                        // Add static ones first
+                        for (var cat in staticCategories) {
+                          categories.add({
+                            'id': cat['id']!,
+                            'name': cat['name']!,
+                          });
+                        }
+                        
+                        // Add firestore ones (avoiding duplicates by normalized ID)
+                        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                          for (var doc in snapshot.data!.docs) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final name = data['name']?.toString() ?? '';
+                            final id = name.toLowerCase().trim();
+                            if (name.isNotEmpty && !categories.any((c) => c['id'] == id)) {
+                              categories.add({
+                                'id': id,
+                                'name': name,
+                              });
+                            }
+                          }
                         }
 
-                        final isSelected = _selectedCategory == id;
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          itemCount: categories.length + 1, // 'All' + dynamic categories
+                          itemBuilder: (context, index) {
+                            String id = 'all';
+                            String name = 'All';
 
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedCategory = id;
-                            });
+                            if (index == 0) {
+                              id = 'all';
+                              name = 'All';
+                            } else {
+                              final cat = categories[index - 1];
+                              id = cat['id']!;
+                              name = cat['name']!;
+                            }
+
+                            final isSelected = _selectedCategory == id;
+
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedCategory = id;
+                                });
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                                padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? Colors.white : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.white : const Color(0xFF27272A),
+                                    width: 1.0,
+                                  ),
+                                ),
+                                child: Text(
+                                  name,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.black : Colors.grey[400],
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            );
                           },
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                            padding: const EdgeInsets.symmetric(horizontal: 18.0),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected ? Colors.white : const Color(0xFF27272A),
-                                width: 1.0,
-                              ),
-                            ),
-                            child: Text(
-                              name,
-                              style: TextStyle(
-                                color: isSelected ? Colors.black : Colors.grey[400],
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
                         );
-                      },
+                      }
                     ),
                   ),
                 ),
