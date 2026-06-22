@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
@@ -248,51 +249,64 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          SafeArea(
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // Minimalist Top Header
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'EXPLORE',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.5,
-                            color: Colors.white,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ProfileScreen(
-                                  favoriteCount: _favoriteUrls.length,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF18181B), // Zinc-900
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Glassmorphic Pinned iOS-style Header
+              SliverAppBar(
+                pinned: true,
+                floating: false,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                automaticallyImplyLeading: false,
+                toolbarHeight: 80, // Height of the nav bar including status bar safety padding
+                flexibleSpace: ClipRRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
+                    child: Container(
+                      color: const Color(0xFF09090B).withValues(alpha: 0.8),
+                      padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 28.0),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'EXPLORE',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.5,
+                              color: Colors.white,
                             ),
-                            child: const Icon(Icons.person_outline_rounded, color: Colors.white70, size: 20),
                           ),
-                        )
-                      ],
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                CupertinoPageRoute(
+                                  builder: (_) => ProfileScreen(
+                                    favoriteCount: _favoriteUrls.length,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF18181B), // Zinc-900
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                              ),
+                              child: const Icon(Icons.person_outline_rounded, color: Colors.white70, size: 20),
+                            ),
+                          )
+                        ],
+                      ),
                     ),
                   ),
                 ),
+              ),
 
                 // "Wallpaper of the Day" / Featured Banner (Premium glass showcase style)
                 if (_currentBottomNavIndex == 0 && featuredWallpaperUrl.isNotEmpty)
@@ -316,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
+                                CupertinoPageRoute(
                                   builder: (_) => WallpaperViewScreen(
                                     imageUrl: featuredWallpaperUrl,
                                     title: featuredTitle,
@@ -602,7 +616,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
+                                    CupertinoPageRoute(
                                       builder: (_) => WallpaperViewScreen(
                                         imageUrl: url,
                                         title: title,
@@ -646,7 +660,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-          ),
 
           // Floating Glassmorphic Bottom Navigation Bar
           Positioned(
@@ -1069,18 +1082,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   double _cacheSize = 15.4;
 
   void _clearCache() {
-    showDialog(
+    showCupertinoDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF18181B), // Zinc-900
-        title: const Text('Clear Cache', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text('Are you sure you want to clear temporary image caches?', style: TextStyle(color: Colors.grey)),
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Clear Cache'),
+        content: const Text('Are you sure you want to clear temporary image caches?'),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.blue)),
           ),
-          TextButton(
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () {
               setState(() {
                 _cacheSize = 0.0;
@@ -1093,7 +1106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               );
             },
-            child: const Text('CLEAR', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            child: const Text('Clear'),
           ),
         ],
       ),
@@ -1101,50 +1114,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showQualitySelector() {
-    showModalBottomSheet(
+    showCupertinoModalPopup(
       context: context,
-      backgroundColor: const Color(0xFF18181B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'DOWNLOAD QUALITY',
-              style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+      builder: (context) => CupertinoTheme(
+        data: const CupertinoThemeData(
+          brightness: Brightness.dark,
+          primaryColor: Colors.white,
+        ),
+        child: CupertinoActionSheet(
+          title: const Text(
+            'DOWNLOAD QUALITY',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
             ),
-            const SizedBox(height: 16),
-            _buildQualityOption('Original (UHD 4K)'),
-            _buildQualityOption('High Resolution'),
-            _buildQualityOption('Medium (Data Saver)'),
+          ),
+          actions: [
+            _buildCupertinoQualityOption('Original (UHD 4K)'),
+            _buildCupertinoQualityOption('High Resolution'),
+            _buildCupertinoQualityOption('Medium (Data Saver)'),
           ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.redAccent)),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildQualityOption(String quality) {
+  Widget _buildCupertinoQualityOption(String quality) {
     final isSelected = _selectedQuality == quality;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        quality,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.grey,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.white) : null,
-      onTap: () {
+    return CupertinoActionSheetAction(
+      onPressed: () {
         setState(() {
           _selectedQuality = quality;
         });
         Navigator.pop(context);
       },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              quality,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                CupertinoIcons.checkmark_alt,
+                color: Colors.white,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1344,11 +1374,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.dark_mode_rounded,
               title: 'AMOLED Dark Mode',
               subtitle: 'Optimise layout contrast for OLED screens',
-              trailing: Switch(
+              trailing: CupertinoSwitch(
                 value: _amoledMode,
-                activeColor: Colors.white,
-                activeTrackColor: Colors.grey[700],
-                inactiveTrackColor: Colors.black,
+                activeTrackColor: Colors.white,
+                inactiveTrackColor: const Color(0xFF27272A),
                 onChanged: (val) {
                   setState(() {
                     _amoledMode = val;
