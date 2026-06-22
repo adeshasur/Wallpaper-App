@@ -268,14 +268,26 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF18181B), // Zinc-900
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ProfileScreen(
+                                  favoriteCount: _favoriteUrls.length,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF18181B), // Zinc-900
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                            ),
+                            child: const Icon(Icons.person_outline_rounded, color: Colors.white70, size: 20),
                           ),
-                          child: const Icon(Icons.person_outline_rounded, color: Colors.white70, size: 20),
                         )
                       ],
                     ),
@@ -1037,6 +1049,337 @@ class _WallpaperViewScreenState extends State<WallpaperViewScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class ProfileScreen extends StatefulWidget {
+  final int favoriteCount;
+
+  const ProfileScreen({super.key, required this.favoriteCount});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _amoledMode = true;
+  String _selectedQuality = 'High Resolution';
+  double _cacheSize = 15.4;
+
+  void _clearCache() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B), // Zinc-900
+        title: const Text('Clear Cache', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to clear temporary image caches?', style: TextStyle(color: Colors.grey)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _cacheSize = 0.0;
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Temporary caches cleared successfully!'),
+                  backgroundColor: Colors.white,
+                ),
+              );
+            },
+            child: const Text('CLEAR', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showQualitySelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF18181B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'DOWNLOAD QUALITY',
+              style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+            ),
+            const SizedBox(height: 16),
+            _buildQualityOption('Original (UHD 4K)'),
+            _buildQualityOption('High Resolution'),
+            _buildQualityOption('Medium (Data Saver)'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQualityOption(String quality) {
+    final isSelected = _selectedQuality == quality;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        quality,
+        style: TextStyle(
+          color: isSelected ? Colors.white : Colors.grey,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.white) : null,
+      onTap: () {
+        setState(() {
+          _selectedQuality = quality;
+        });
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  Widget _buildSettingTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF18181B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        leading: Icon(icon, color: Colors.white70, size: 22),
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(color: Colors.grey, fontSize: 11),
+        ),
+        trailing: trailing,
+        onTap: onTap,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF09090B),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'PROFILE',
+          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // User Header Card
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF18181B),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  )
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Avatar with glow
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const CircleAvatar(
+                      backgroundColor: Color(0xFF27272A),
+                      child: Icon(Icons.person_rounded, color: Colors.white, size: 40),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Username
+                  const Text(
+                    'Wallpaper Enthusiast',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  
+                  // Join Date
+                  const Text(
+                    'Member since June 2026',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Member Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1.0),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                        SizedBox(width: 6),
+                        Text(
+                          'PRO MEMBER',
+                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Stats Row
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF18181B),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '${widget.favoriteCount}',
+                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text('Favorites', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF18181B),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFF27272A), width: 1.0),
+                    ),
+                    child: const Column(
+                      children: [
+                        Text(
+                          '12',
+                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 4),
+                        Text('Downloads', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Settings Header
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 12),
+                child: Text(
+                  'APPLICATION SETTINGS',
+                  style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                ),
+              ),
+            ),
+
+            // Settings Tiles
+            _buildSettingTile(
+              icon: Icons.dark_mode_rounded,
+              title: 'AMOLED Dark Mode',
+              subtitle: 'Optimise layout contrast for OLED screens',
+              trailing: Switch(
+                value: _amoledMode,
+                activeColor: Colors.white,
+                activeTrackColor: Colors.grey[700],
+                inactiveTrackColor: Colors.black,
+                onChanged: (val) {
+                  setState(() {
+                    _amoledMode = val;
+                  });
+                },
+              ),
+            ),
+            
+            _buildSettingTile(
+              icon: Icons.high_quality_rounded,
+              title: 'Download Quality',
+              subtitle: _selectedQuality,
+              trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              onTap: _showQualitySelector,
+            ),
+            
+            _buildSettingTile(
+              icon: Icons.delete_sweep_rounded,
+              title: 'Clear Caches',
+              subtitle: 'Temporary files: ${_cacheSize.toStringAsFixed(1)} MB',
+              trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              onTap: _clearCache,
+            ),
+            
+            _buildSettingTile(
+              icon: Icons.info_outline_rounded,
+              title: 'Wallpaper.Inc v1.2.0',
+              subtitle: 'Designed with love by Tunix',
+            ),
+          ],
+        ),
       ),
     );
   }
